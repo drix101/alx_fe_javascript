@@ -47,7 +47,7 @@ function populateCategories() {
   const categoryFilter = document.getElementById("categoryFilter");
 
   // Use map() to extract categories from the quotes array
-  const categories = quotes.map(quote => quote.category);
+  const categories = quotes.map(q => q.category);
 
   // Use Set to get unique categories
   const uniqueCategories = [...new Set(categories)];
@@ -171,4 +171,7 @@ window.onload = function () {
     const quoteObj = JSON.parse(lastQuote);
     document.getElementById("quoteDisplay").innerHTML = `"${quoteObj.text}" <br><small>— ${quoteObj.category}</small>`;
   }
+
+  // Attach event listener to category dropdown
+  document.getElementById("categoryFilter").addEventListener("change", filterQuotes);
 };
