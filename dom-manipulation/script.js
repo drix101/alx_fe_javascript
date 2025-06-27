@@ -175,3 +175,154 @@ window.onload = function () {
   // Attach event listener to category dropdown
   document.getElementById("categoryFilter").addEventListener("change", filterQuotes);
 };
+
+// Server simulation URL (using JSONPlaceholder)
+const SERVER_URL = 'https://jsonplaceholder.typicode.com/posts';
+let lastSyncTimestamp = 0;
+
+// Fetch quotes from server
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(SERVER_URL);
+    const serverData = await response.json();
+    // Convert server data format to our quote format
+    return serverData.slice(0, 5).map(post => ({
+      text: post.body.split('\n')[0],
+      category: post.title.split(' ')[0],
+      timestamp: Date.now(),
+      id: post.id
+    }));
+  } catch (error) {
+    console.error('Error fetching from server:', error);
+    return null;
+  }
+}
+
+// Sync with server
+async function syncWithServer() {
+  const serverQuotes = await fetchQuotesFromServer();
+  if (!serverQuotes) return;
+
+  // Get local quotes
+  const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
+
+  // Merge quotes with conflict resolution
+  const mergedQuotes = mergeQuotes(localQuotes, serverQuotes);
+
+  // Update local storage
+  localStorage.setItem('quotes', JSON.stringify(mergedQuotes));
+  quotes = mergedQuotes;
+
+  // Update UI
+  showSyncNotification('Quotes synchronized with server');
+  populateCategories();
+  showRandomQuote();
+
+  lastSyncTimestamp = Date.now();
+}
+
+// Merge quotes with conflict resolution
+function mergeQuotes(localQuotes, serverQuotes) {
+  const mergedQuotes = [...localQuotes];
+  
+  serverQuotes.forEach(serverQuote => {
+    const localIndex = mergedQuotes.findIndex(q => q.id === serverQuote.id);
+    if (localIndex === -1) {
+      // New quote from server
+      mergedQuotes.push(serverQuote);
+    } else if (!mergedQuotes[localIndex].timestamp || 
+               serverQuote.timestamp > mergedQuotes[localIndex].timestamp) {
+      // Server quote is newer
+      mergedQuotes[localIndex] = serverQuote;
+    }
+  });
+
+  return mergedQuotes;
+}
+
+// Show sync notification
+function showSyncNotification(message) {
+  const notification = document.createElement('div');
+  notification.className = 'sync-notification';
+  notification.textContent = message;
+  document.body.appendChild(notification);
+
+  // Remove notification after 3 seconds
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+}
+
+// Add manual sync button
+function addSyncButton() {
+  const syncButton = document.createElement('button');
+  syncButton.textContent = 'Sync with Server';
+  syncButton.addEventListener('click', syncWithServer);
+  document.getElementById('quoteFormContainer').appendChild(syncButton);
+}
+
+// Initialize sync functionality
+function initializeSync() {
+  addSyncButton();
+  // Perform initial sync
+  syncWithServer();
+  // Set up periodic sync (every 5 minutes)
+  setInterval(syncWithServer, 5 * 60 * 1000);
+}
+
+// Add to your existing initialization code
+window.onload = function() {
+  loadQuotes();
+  populateCategories();
+  showRandomQuote();
+  createAddQuoteForm();
+  initializeSync();
+};
+
+// Update addQuote function to include timestamp and ID
+function addQuote() {
+  const text = document.getElementById('newQuoteText').value.trim();
+  const category = document.getElementById('newQuoteCategory').value.trim();
+
+  if (text && category) {
+    const newQuote = {
+      text: text,
+      category: category,
+      timestamp: Date.now(),
+      id: Date.now() // Simple ID generation
+    };
+
+    quotes.push(newQuote);
+    saveQuotes();
+    populateCategories();
+    showRandomQuote();
+
+    // Clear inputs
+    document.getElementById('newQuoteText').value = '';
+    document.getElementById('newQuoteCategory').value = '';
+  }
+}
+
+// Add CSS for notification
+const style = document.createElement('style');
+style.textContent = `
+.sync-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px;
+  border-radius: 5px;
+  z-index: 1000;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+`;
+document.head.appendChild(style);
