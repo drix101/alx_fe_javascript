@@ -45,23 +45,27 @@ function showRandomQuote() {
 // Populate categories in the dropdown
 function populateCategories() {
   const categoryFilter = document.getElementById("categoryFilter");
-  const existingCategories = new Set();
 
-  quotes.forEach(q => existingCategories.add(q.category));
+  // Use map() to extract categories from the quotes array
+  const categories = quotes.map(quote => quote.category);
+
+  // Use Set to get unique categories
+  const uniqueCategories = [...new Set(categories)];
 
   // Clear existing options except 'All'
   while (categoryFilter.options.length > 1) {
     categoryFilter.remove(1);
   }
 
-  existingCategories.forEach(cat => {
+  // Populate the dropdown with unique categories
+  uniqueCategories.forEach(category => {
     const option = document.createElement("option");
-    option.value = cat;
-    option.textContent = cat;
+    option.value = category;
+    option.textContent = category;
     categoryFilter.appendChild(option);
   });
 
-  // Restore last selected filter from localStorage
+  // Restore the last selected category from localStorage if it exists
   const lastFilter = localStorage.getItem("lastSelectedFilter");
   if (lastFilter) {
     categoryFilter.value = lastFilter;
