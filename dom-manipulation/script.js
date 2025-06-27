@@ -291,7 +291,7 @@ async function syncQuotes() {
     // Update UI
     populateCategories();
     showRandomQuote();
-    showSyncNotification('Quotes synchronized successfully');
+    showSyncNotification();
 
   } catch (error) {
     console.error('Sync error:', error);
@@ -336,13 +336,81 @@ function mergeQuotes(localQuotes, serverQuotes) {
 function showSyncNotification(message) {
   const notification = document.createElement('div');
   notification.className = 'sync-notification';
-  notification.textContent = message;
+  notification.textContent = 'Quotes synced with server!';
   document.body.appendChild(notification);
+
+  // Add animation class
+  notification.classList.add('show');
 
   // Remove notification after 3 seconds
   setTimeout(() => {
-    notification.remove();
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
   }, 3000);
+}
+
+// Add CSS for improved notifications
+const style = document.createElement('style');
+style.textContent = `
+.sync-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.sync-notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+`;
+document.head.appendChild(style);
+
+// Update syncQuotes function to use the new notification
+async function syncQuotes() {
+  try {
+    const serverQuotes = await fetchQuotesFromServer();
+    if (!serverQuotes) {
+      throw new Error('Failed to fetch quotes from server');
+    }
+
+    const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
+    
+    // Sync new local quotes to server
+    const newLocalQuotes = localQuotes.filter(localQuote => 
+      !serverQuotes.some(serverQuote => serverQuote.id === localQuote.id)
+    );
+
+    for (const quote of newLocalQuotes) {
+      await postQuoteToServer(quote);
+    }
+
+    // Merge and update local storage
+    const mergedQuotes = mergeQuotes(localQuotes, serverQuotes);
+    localStorage.setItem('quotes', JSON.stringify(mergedQuotes));
+    quotes = mergedQuotes;
+
+    // Update UI
+    populateCategories();
+    showRandomQuote();
+    showSyncNotification();
+
+  } catch (error) {
+    console.error('Sync error:', error);
+    const notification = document.createElement('div');
+    notification.className = 'sync-notification';
+    notification.style.backgroundColor = '#f44336';
+    notification.textContent = `Sync failed: ${error.message}`;
+    document.body.appendChild(notification);
+  }
 }
 
 // Add manual sync button
