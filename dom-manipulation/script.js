@@ -74,8 +74,8 @@ function populateCategories() {
 
 // Filter quotes when dropdown changes
 function filterQuotes() {
-  const category = document.getElementById("categoryFilter").value;
-  localStorage.setItem("lastSelectedFilter", category);
+  const selectedCategory = document.getElementById("categoryFilter").value;
+  localStorage.setItem("lastSelectedFilter", selectedCategory);
   showRandomQuote();
 }
 
