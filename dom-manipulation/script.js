@@ -183,9 +183,13 @@ let lastSyncTimestamp = 0;
 // Fetch quotes from server
 async function fetchQuotesFromServer() {
   try {
-    const response = await fetch(SERVER_URL);
+    const response = await fetch(SERVER_URL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     const serverData = await response.json();
-    // Convert server data format to our quote format
     return serverData.slice(0, 5).map(post => ({
       text: post.body.split('\n')[0],
       category: post.title.split(' ')[0],
@@ -195,6 +199,62 @@ async function fetchQuotesFromServer() {
   } catch (error) {
     console.error('Error fetching from server:', error);
     return null;
+  }
+}
+
+// Post quote to server
+async function postQuoteToServer(quote) {
+  try {
+    const response = await fetch(SERVER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: quote.category,
+        body: quote.text,
+        userId: 1
+      })
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error posting to server:', error);
+    return null;
+  }
+}
+
+// Update addQuote function to include server sync
+async function addQuote() {
+  const text = document.getElementById('newQuoteText').value.trim();
+  const category = document.getElementById('newQuoteCategory').value.trim();
+
+  if (text && category) {
+    const newQuote = {
+      text: text,
+      category: category,
+      timestamp: Date.now(),
+      id: Date.now()
+    };
+
+    // Add to local storage
+    quotes.push(newQuote);
+    saveQuotes();
+
+    // Post to server
+    const serverResponse = await postQuoteToServer(newQuote);
+    if (serverResponse) {
+      showSyncNotification('Quote synced with server');
+    } else {
+      showSyncNotification('Quote saved locally (offline)');
+    }
+
+    populateCategories();
+    showRandomQuote();
+
+    // Clear inputs
+    document.getElementById('newQuoteText').value = '';
+    document.getElementById('newQuoteCategory').value = '';
   }
 }
 
@@ -278,30 +338,6 @@ window.onload = function() {
   createAddQuoteForm();
   initializeSync();
 };
-
-// Update addQuote function to include timestamp and ID
-function addQuote() {
-  const text = document.getElementById('newQuoteText').value.trim();
-  const category = document.getElementById('newQuoteCategory').value.trim();
-
-  if (text && category) {
-    const newQuote = {
-      text: text,
-      category: category,
-      timestamp: Date.now(),
-      id: Date.now() // Simple ID generation
-    };
-
-    quotes.push(newQuote);
-    saveQuotes();
-    populateCategories();
-    showRandomQuote();
-
-    // Clear inputs
-    document.getElementById('newQuoteText').value = '';
-    document.getElementById('newQuoteCategory').value = '';
-  }
-}
 
 // Add CSS for notification
 const style = document.createElement('style');
