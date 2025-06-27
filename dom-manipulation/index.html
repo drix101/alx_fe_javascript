@@ -5,7 +5,13 @@
   <title>Dynamic Quote Generator with Storage</title>
 </head>
 <body>
-  <h1>📖 Dynamic Quote Generator</h1>
+  <h1>Dynamic Quote Generator</h1>
+
+  <!-- Category Filter -->
+  <label for="categoryFilter">Filter by Category:</label>
+  <select id="categoryFilter" onchange="filterQuotes()">
+    <option value="all">All Categories</option>
+  </select>
 
   <!-- Display random quote -->
   <div id="quoteDisplay" style="margin: 20px 0; font-size: 1.2rem;"></div>
