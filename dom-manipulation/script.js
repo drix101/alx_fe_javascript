@@ -258,27 +258,59 @@ async function addQuote() {
   }
 }
 
-// Sync with server
-async function syncWithServer() {
-  const serverQuotes = await fetchQuotesFromServer();
-  if (!serverQuotes) return;
+// Sync quotes between local storage and server
+async function syncQuotes() {
+  try {
+    // Fetch quotes from server
+    const serverQuotes = await fetchQuotesFromServer();
+    if (!serverQuotes) {
+      showSyncNotification('Failed to sync with server');
+      return;
+    }
 
-  // Get local quotes
-  const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
+    // Get local quotes
+    const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
 
-  // Merge quotes with conflict resolution
-  const mergedQuotes = mergeQuotes(localQuotes, serverQuotes);
+    // Find new local quotes to sync to server
+    const newLocalQuotes = localQuotes.filter(localQuote => 
+      !serverQuotes.some(serverQuote => serverQuote.id === localQuote.id)
+    );
 
-  // Update local storage
-  localStorage.setItem('quotes', JSON.stringify(mergedQuotes));
-  quotes = mergedQuotes;
+    // Post new local quotes to server
+    for (const quote of newLocalQuotes) {
+      await postQuoteToServer(quote);
+    }
 
-  // Update UI
-  showSyncNotification('Quotes synchronized with server');
-  populateCategories();
-  showRandomQuote();
+    // Merge server quotes with local quotes
+    const mergedQuotes = mergeQuotes(localQuotes, serverQuotes);
 
-  lastSyncTimestamp = Date.now();
+    // Update local storage
+    localStorage.setItem('quotes', JSON.stringify(mergedQuotes));
+    quotes = mergedQuotes;
+
+    // Update UI
+    populateCategories();
+    showRandomQuote();
+    showSyncNotification('Quotes synchronized successfully');
+
+  } catch (error) {
+    console.error('Sync error:', error);
+    showSyncNotification('Sync failed: ' + error.message);
+  }
+}
+
+// Update initializeSync function to use syncQuotes
+function initializeSync() {
+  const syncButton = document.createElement('button');
+  syncButton.textContent = 'Sync Quotes';
+  syncButton.addEventListener('click', syncQuotes);
+  document.getElementById('quoteFormContainer').appendChild(syncButton);
+
+  // Initial sync
+  syncQuotes();
+
+  // Set up periodic sync (every 5 minutes)
+  setInterval(syncQuotes, 5 * 60 * 1000);
 }
 
 // Merge quotes with conflict resolution
